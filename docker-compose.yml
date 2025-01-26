@@ -1,0 +1,6 @@
+services:
+  app:
+    image: carolusian/llmproxify:0.1.1a
+    build: .
+    ports:
+      - "8081:8080"

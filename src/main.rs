@@ -1,18 +1,19 @@
 use core::fmt;
+use dotenv::dotenv;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use url::{ParseError, Url};
 
 use axum::{
-    body::{self, Bytes, Body},
+    body::{self, Body, Bytes},
     extract::{Path, Request, State},
-    http::{Method, StatusCode},
+    http::Method,
     response::{IntoResponse, Response},
     routing::get,
     Router,
 };
-use reqwest::Client;
+use reqwest::{self, Client};
 use serde::{Deserialize, Serialize};
 
 const DEFAULT_PROVIDERS: &[(&str, &str)] = &[
@@ -73,6 +74,8 @@ impl From<String> for AppError {
 #[tokio::main]
 async fn main() {
     // Load api providers
+    dotenv().ok();
+
     let api_providers = Arc::new(load_env_providers());
     let app = Router::new()
         .route("/", get(index))
@@ -125,7 +128,14 @@ async fn send_request(
     body: Bytes,
     token: &Option<String>,
 ) -> Result<reqwest::Response, reqwest::Error> {
-    let client = Client::new();
+    let client = if let Some(proxy) = load_proxy() {
+        Client::builder()
+            .proxy(reqwest::Proxy::all(proxy)?)
+            .build()?
+    } else {
+        Client::builder().build()?
+    };
+
     let mut client = match *method {
         Method::GET => client.get(url),
         Method::POST => client.post(url),
@@ -177,8 +187,10 @@ fn load_env_providers() -> HashMap<String, String> {
         providers.insert(k.to_string(), v.to_string());
     }
     // Override with environment variables
-    if let Ok(api_providers) = env::var("API_PROVIDERS") {
-        if let Ok(api_providers_json) = serde_json::from_str::<serde_json::Value>(&api_providers) {
+    if let Some(api_providers) = env::var("API_PROVIDERS").ok() {
+        if let Some(api_providers_json) =
+            serde_json::from_str::<serde_json::Value>(&api_providers).ok()
+        {
             if let Some(api_providers_map) = api_providers_json.as_object() {
                 for (k, v) in api_providers_map {
                     if let Some(url) = v.as_str() {
@@ -189,4 +201,8 @@ fn load_env_providers() -> HashMap<String, String> {
         }
     }
     providers
+}
+
+fn load_proxy() -> Option<String> {
+    env::var("ALL_PROXY").ok()
 }

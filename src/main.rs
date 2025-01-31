@@ -1,9 +1,11 @@
-use core::fmt;
+mod errors;
+
+use self::errors::AppError;
 use dotenv::dotenv;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
-use url::{ParseError, Url};
+use url::Url;
 
 use axum::{
     body::{self, Body, Bytes},
@@ -13,7 +15,7 @@ use axum::{
     routing::get,
     Router,
 };
-use reqwest::{self, Client};
+use reqwest::{self, Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
 const DEFAULT_PROVIDERS: &[(&str, &str)] = &[
@@ -23,53 +25,6 @@ const DEFAULT_PROVIDERS: &[(&str, &str)] = &[
     ("gemini", "https://generativelanguage.googleapis.com/"),
     ("sambanova", "https://api.sambanova.ai/"),
 ];
-
-#[derive(Debug)]
-enum AppError {
-    UrlParseError(ParseError),
-    RequestError(reqwest::Error),
-    SerdeJsonError(serde_json::Error),
-    Other(String),
-}
-
-impl fmt::Display for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AppError::UrlParseError(e) => write!(f, "URL parse error: {}", e),
-            AppError::RequestError(e) => write!(f, "Request error: {}", e),
-            AppError::SerdeJsonError(e) => {
-                write!(f, "JSON serialization/deserialization error: {}", e)
-            }
-            AppError::Other(msg) => write!(f, "Other error: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for AppError {}
-
-impl From<ParseError> for AppError {
-    fn from(e: ParseError) -> Self {
-        AppError::UrlParseError(e)
-    }
-}
-
-impl From<reqwest::Error> for AppError {
-    fn from(e: reqwest::Error) -> Self {
-        AppError::RequestError(e)
-    }
-}
-
-impl From<serde_json::Error> for AppError {
-    fn from(e: serde_json::Error) -> Self {
-        AppError::SerdeJsonError(e)
-    }
-}
-
-impl From<String> for AppError {
-    fn from(msg: String) -> Self {
-        AppError::Other(msg)
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -95,25 +50,25 @@ async fn handler(
     Path(params): Path<Params>,
     State(api_providers): State<Arc<HashMap<String, String>>>,
     req: Request,
-) -> impl IntoResponse {
-    let url = get_upstream_url(&req, &params.provider, &params.rest, &api_providers);
-    let full_url = match url {
-        Ok(url) => url,
-        Err(_) => "".to_string(),
-    };
-    println!("Upstream URL:{}", &full_url);
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let url = get_upstream_url(&req, &params.provider, &params.rest, &api_providers)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("{}", e)))?;
+
+    println!("Upstream URL:{}", &url);
     let token = get_token(&req);
     let method = req.method().to_owned();
     let req_body = body::to_bytes(req.into_body(), usize::MAX).await.unwrap();
-    let reqwest_resp = send_request(&full_url, &method, req_body, &token)
+    let reqwest_resp = send_request(&url, &method, req_body, &token)
         .await
-        .unwrap();
+        .map_err(|e| (e.status().unwrap(), format!("{}", e)))?;
+
     let status = reqwest_resp.status();
     let mut response_builder = Response::builder().status(status);
     *response_builder.headers_mut().unwrap() = reqwest_resp.headers().clone();
-    response_builder
+    let response = response_builder
         .body(Body::from_stream(reqwest_resp.bytes_stream()))
-        .unwrap()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", e)));
+    Ok(response)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

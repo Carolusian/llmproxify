@@ -8,7 +8,7 @@ use std::sync::Arc;
 use url::Url;
 
 use axum::{
-    body::{self, Body, Bytes},
+    body::{self, Body},
     extract::{Path, Request, State},
     http::Method,
     response::{IntoResponse, Response},
@@ -24,6 +24,7 @@ const DEFAULT_PROVIDERS: &[(&str, &str)] = &[
     ("cerebras", "https://api.cerebras.ai/"),
     ("gemini", "https://generativelanguage.googleapis.com/"),
     ("sambanova", "https://api.sambanova.ai/"),
+    ("anthropic", "https://api.anthropic.com/"),
 ];
 
 #[tokio::main]
@@ -57,8 +58,7 @@ async fn handler(
     println!("Upstream URL:{}", &url);
     let token = get_token(&req);
     let method = req.method().to_owned();
-    let req_body = body::to_bytes(req.into_body(), usize::MAX).await.unwrap();
-    let reqwest_resp = send_request(&url, &method, req_body, &token)
+    let reqwest_resp = send_request(&url, &method, &token, req)
         .await
         .map_err(|e| (e.status().unwrap(), format!("{}", e)))?;
 
@@ -80,8 +80,8 @@ struct Params {
 async fn send_request(
     url: &String,
     method: &Method,
-    body: Bytes,
     token: &Option<String>,
+    req: Request,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let client = if let Some(proxy) = load_proxy() {
         Client::builder()
@@ -100,13 +100,18 @@ async fn send_request(
     };
 
     if let Some(token) = token {
-        client = client.header("Authorization", token);
+        client = client.header("authorization", token);
     }
-    let response = client
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await?;
+
+    let header_keys = vec!["x-api-key", "anthropic-version", "content-type"];
+    for (key, val) in req.headers() {
+        if header_keys.contains(&key.as_str()) {
+            client = client.header(key, val);
+        }
+    }
+
+    let req_body = body::to_bytes(req.into_body(), usize::MAX).await.unwrap();
+    let response = client.body(req_body).send().await?;
     Ok(response)
 }
 

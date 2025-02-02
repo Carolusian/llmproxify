@@ -1,6 +1,6 @@
 # llmproxify
 
-`llmproxify` is a reverse proxy server designed to route requests to various Large Language Model (LLM) providers such as OpenAI, Anthropic, and others. The application runs as an HTTP server and proxies requests based on the specified provider and endpoint. Deploy `llmproxify` in regions which are not blocked by those LLM providers, allowing you to bypass regional restrictions. It is tested with Google Cloud Run.
+`llmproxify` is a lightweight reverse proxy designed to route requests to various Large Language Model (LLM) providers such as OpenAI, Anthropic, and others. The application runs as an HTTP server and proxies requests based on the specified provider and endpoint. Deploy `llmproxify` in regions which are not blocked by those LLM providers, allowing you to bypass regional restrictions. It is tested with Google Cloud Run.
 
 ## Deploying on Google Cloud Run
 
@@ -34,7 +34,7 @@ To deploy your container on Cloud Run, follow these steps:
 
 ## Usage Examples
 
-To test the deployed service, you can use tools like `curl` or make HTTP requests from a client application. Please note that the first segment of the URI after `https://llmproxify-xxxxxxxxxxx.us-central1.run.app` is the configured LLM provider. The following LLM providers and their endpoints are pre-configured:
+To test the deployed service, you can use tools like `curl` or make HTTP requests from a client application. Please note that the first segment of the URI after `https://llmproxify-xxxxxxxxxxx.us-central1.run.app` is the configured LLM provider. The following LLM providers and their HTTP domain entries are pre-configured:
 
 ```json
 {
@@ -156,3 +156,51 @@ If you are using the libraries provided by the LLM providers, ensure that you ha
 - **OpenAI**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/openai/v1`
 - **Groq**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/groq/openai/v1`
 - **Cerebras**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/cerebras/v1`
+
+## Standalone Deployment
+
+This project is developed using [Rust](https://www.rust-lang.org/), and it can be deployed as a standalone service. Below are the steps to build and run the project:
+
+### Using Cargo
+
+1. **Build the Project:**
+   - To build the project in release mode, execute the following command:
+     ```bash
+     cargo build --release
+     ```
+   - This will compile the project and generate an optimized binary in the `target/release` directory.
+
+2. **Run the Project:**
+   - After building, you can run the project using:
+     ```bash
+     cargo run --release
+     ```
+   - Alternatively, you can directly run the binary from the `target/release` directory:
+     ```bash
+     ./target/release/your_project_name
+     ```
+
+### Using Docker
+
+1. **Build and Run with Docker Compose:**
+   - If you prefer using Docker, you can build and run the project using Docker Compose. First, ensure you have Docker and Docker Compose installed.
+   - Then, use the following command to start the service in detached mode:
+     ```bash
+     docker compose up -d
+     ```
+   - This command will read the `docker-compose.yml` file to set up and run the service.
+
+2. **View Docker Compose Configuration:**
+   - For more details on the Docker Compose setup, refer to the [docker-compose.yml](docker-compose.yml) file in the repository.
+
+## Configuration
+
+You can extend the integration with other LLM platforms and configure an HTTP proxy by setting environment variables.
+
+### Environment Variables
+
+- **API_PROVIDERS**: A JSON string defining the API endpoints for additional LLM platforms. For example:
+  ```json
+  {"cerebras": "https://api.cerebras.ai/", "sambanova": "https://api.sambanova.ai/"}
+  ```
+- **ALL_PROXY**: The URL for your HTTP proxy.

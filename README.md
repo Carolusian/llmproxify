@@ -1,6 +1,23 @@
 # llmproxify
 
+- [llmproxify](#llmproxify)
+  - [Introduction](#introduction)
+  - [Deploying on Google Cloud Run](#deploying-on-google-cloud-run)
+  - [Usage Examples](#usage-examples)
+    - [Gemini](#gemini)
+    - [Anthropic](#anthropic)
+    - [Groq](#groq)
+    - [Cerebras](#cerebras)
+    - [OpenAI](#openai)
+  - [Standalone Deployment](#standalone-deployment)
+    - [Using Cargo](#using-cargo)
+    - [Using Docker](#using-docker)
+  - [Configuration](#configuration)
+
+## Introduction
+
 `llmproxify` is a lightweight reverse proxy designed to route requests to various Large Language Model (LLM) providers such as OpenAI, Anthropic, and others. The application runs as an HTTP server and proxies requests based on the specified provider and endpoint. Deploy `llmproxify` in regions which are not blocked by those LLM providers, allowing you to bypass regional restrictions. It is tested with Google Cloud Run.
+
 
 ## Deploying on Google Cloud Run
 

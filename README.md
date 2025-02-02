@@ -195,9 +195,7 @@ This project is developed using [Rust](https://www.rust-lang.org/), and it can b
 
 ## Configuration
 
-You can extend the integration with other LLM platforms and configure an HTTP proxy by setting environment variables.
-
-### Environment Variables
+You can extend the integration with other LLM platforms and configure an HTTP proxy by setting the following environment variables.
 
 - **API_PROVIDERS**: A JSON string defining the API endpoints for additional LLM platforms. For example:
   ```json

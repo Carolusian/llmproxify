@@ -18,7 +18,7 @@ To deploy your container on Cloud Run, follow these steps:
 
 3. **Configure the Service**:
    - **Container Image URL**: Enter `index.docker.io/carolusian/llmproxify:0.1.3`.
-   - **Service Name**: Enter a unique service name or use the default value provided, e.g. `llmproxify:0.1.3`.
+   - **Service Name**: Enter a unique service name or use the default value provided, e.g. `llmproxify`.
    - **Region**: Select `us-central1` or choose another region based on your preference.
 
 4. **Authentication**:
@@ -33,3 +33,126 @@ To deploy your container on Cloud Run, follow these steps:
    - You should see "Hello, llmproxify!" displayed in the browser.
 
 ## Usage Examples
+
+To test the deployed service, you can use tools like `curl` or make HTTP requests from a client application. Please note that the first segment of the URI after `https://llmproxify-xxxxxxxxxxx.us-central1.run.app` is the configured LLM provider. The following LLM providers and their endpoints are pre-configured:
+
+```json
+{
+    "gemini": "https://generativelanguage.googleapis.com/",
+    "anthropic": "https://api.anthropic.com/",
+    "openai": "https://api.openai.com/",
+    "groq": "https://api.groq.com/",
+    "cerebras": "https://api.cerebras.ai/"
+}
+```
+
+Here are some examples using `curl`:
+
+### Gemini
+
+```bash
+curl "https://llmproxify-xxxxxxxxxxx.us-central1.run.app/gemini/v1beta/models/gemini-1.5-flash:generateContent?key=${YOUR_API_KEY}" \
+-H 'Content-Type: application/json' \
+-X POST \
+-d '{
+  "contents": [{
+    "parts":[{"text": "Write a story about a magic backpack."}]
+    }]
+   }'
+```
+
+### Anthropic
+
+```bash
+curl https://llmproxify-xxxxxxxxxxx.us-central1.run.app/anthropic/v1/messages \
+     --header "x-api-key: ${YOUR_ANTHROPIC_API_KEY}" \
+     --header "anthropic-version: 2023-06-01" \
+     --header "content-type: application/json" \
+     --data \
+'{
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 1024,
+    "messages": [
+        {"role": "user", "content": "Hello, world"}
+    ]
+}'
+```
+
+### Groq
+
+```bash
+curl "https://llmproxify-xxxxxxxxxxx.us-central1.run.app/groq/openai/v1/chat/completions" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${YOUR_GROQ_API_KEY}" \
+  -d '{
+                  "messages": [{
+                        "role": "system",
+                        "content": "You are a helpful assistant"
+                },
+                {
+                        "role": "user",
+                        "content": "Hello"
+                }],
+         "model": "llama-3.3-70b-versatile",
+         "temperature": 1,
+         "max_completion_tokens": 1024,
+         "top_p": 1,
+         "stop": null
+       }'
+```
+
+### Cerebras
+
+```bash
+curl "https://llmproxify-xxxxxxxxxxx.us-central1.run.app/cerebras/v1/chat/completions" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${YOUR_CEREBRAS_API_KEY}" \
+  -d '{
+                  "messages": [{
+                        "role": "system",
+                        "content": "You are a helpful assistant"
+                },
+                {
+                        "role": "user",
+                        "content": "Hello"
+                }],
+         "model": "llama3.1-8b",
+         "temperature": 1,
+         "max_completion_tokens": 1024,
+         "top_p": 1,
+         "stop": null
+       }'
+```
+
+### OpenAI
+
+```bash
+curl "https://llmproxify-xxxxxxxxxxx.us-central1.run.app/openai/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_OPENAI_API_KEY" \
+    -d '{
+        "model": "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant."
+            },
+            {
+                "role": "user",
+                "content": "Write a haiku that explains the concept of recursion."
+            }
+        ]
+    }'
+```
+
+Make sure to replace `${YOUR_XXXXX_API_KEY}` with your actual API key for each provider.
+
+If you are using the libraries provided by the LLM providers, ensure that you have updated the endpoint base URLs as follows:
+
+- **Gemini**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/gemini/v1beta`
+- **Anthropic**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/anthropic/v1`
+- **OpenAI**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/openai/v1`
+- **Groq**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/groq/openai/v1`
+- **Cerebras**: `https://llmproxify-xxxxxxxxxxx.us-central1.run.app/cerebras/v1`

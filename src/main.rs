@@ -56,9 +56,7 @@ async fn handler(
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("{}", e)))?;
 
     println!("Upstream URL:{}", &url);
-    let token = get_token(&req);
-    let method = req.method().to_owned();
-    let reqwest_resp = send_request(&url, &method, &token, req)
+    let reqwest_resp = send_request(&url, req)
         .await
         .map_err(|e| (e.status().unwrap(), format!("{}", e)))?;
 
@@ -77,12 +75,7 @@ struct Params {
     rest: String,
 }
 
-async fn send_request(
-    url: &String,
-    method: &Method,
-    token: &Option<String>,
-    req: Request,
-) -> Result<reqwest::Response, reqwest::Error> {
+async fn send_request(url: &String, req: Request) -> Result<reqwest::Response, reqwest::Error> {
     let client = if let Some(proxy) = load_proxy() {
         Client::builder()
             .proxy(reqwest::Proxy::all(proxy)?)
@@ -91,6 +84,8 @@ async fn send_request(
         Client::builder().build()?
     };
 
+    let token = get_token(&req);
+    let method = req.method();
     let mut client = match *method {
         Method::GET => client.get(url),
         Method::POST => client.post(url),
@@ -135,10 +130,10 @@ fn get_upstream_url(
     }
 }
 
-fn get_token(req: &Request) -> Option<String> {
+fn get_token(req: &Request) -> Option<&str> {
     req.headers()
         .get("Authorization")
-        .and_then(|auth| auth.to_str().ok().map(String::from))
+        .and_then(|auth| auth.to_str().ok())
 }
 
 fn load_env_providers() -> HashMap<String, String> {

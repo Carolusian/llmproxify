@@ -34,7 +34,7 @@ To deploy your container on Cloud Run, follow these steps:
    - Choose **Deploy one revision from an existing container image**.
 
 3. **Configure the Service**:
-   - **Container Image URL**: Enter `index.docker.io/carolusian/llmproxify:0.1.3`.
+   - **Container Image URL**: Enter `index.docker.io/carolusian/llmproxify:latest`.
    - **Service Name**: Enter a unique service name or use the default value provided, e.g. `llmproxify`.
    - **Region**: Select `us-central1` or choose another region based on your preference.
 
